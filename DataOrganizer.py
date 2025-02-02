@@ -29,16 +29,16 @@ def get_week_start(date):
 
 def Main():
     print("Loading json data...")
-    
+
     with open("bitcoin_data.json", "r") as file:
         data = json.load(file)
-        
+
     print("Sorting by week starting Monday..")
 
     weekly_data = group_by_week_starting_monday(data)
 
     save_to_json(weekly_data, "weekly_data.json")
-    
+
     print("Data groupings complete.")
 
 
