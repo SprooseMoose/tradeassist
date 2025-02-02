@@ -63,3 +63,24 @@ def get_datetimes(candleData):
         adelaide_time = utc_time.astimezone(ZoneInfo("Australia/Adelaide"))
         candle["day"] = adelaide_time.strftime("%a")
         candle["datetime"] = adelaide_time.strftime("%Y-%m-%d %H:%M:%S")
+
+def ReorderColumns(df):
+    # Reorder columns for better readability
+    df = df[
+        ["timestamp", "datetime", "day", "open", "high", "low", "close", "volume"]
+    ]
+    
+def RenameColumns(df):
+    # Rename columns for clarity
+    df.rename(
+        columns={
+            "t": "timestamp",
+            "o": "open",
+            "h": "high",
+            "l": "low",
+            "c": "close",
+            "v": "volume",
+            "day": "day",
+        },
+        inplace=True,
+    )
