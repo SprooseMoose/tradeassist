@@ -3,8 +3,10 @@ import json
 
 from DataFrameUtils import (
     PrintAverageAndMedianWeeklyRange,
+    PrintWeeklyHighLowOccurrences,
     PrintHighLowProbabilityByDay,
     PrintHighLowProbabilityByHour,
+    PrintTopHighLowProbabilityByHourAndDay,
 )
 from utils import RenameColumns
 
@@ -28,9 +30,11 @@ def Main():
         df["week"] = df["datetime"].dt.to_period("W")
         df["hour"] = df["datetime"].dt.hour
 
-        PrintAverageAndMedianWeeklyRange(df)
+        # PrintAverageAndMedianWeeklyRange(df)
+        # PrintTopHighLowProbabilityByHourAndDay(df)
         PrintHighLowProbabilityByDay(df)
         PrintHighLowProbabilityByHour(df)
+        PrintWeeklyHighLowOccurrences(df)
 
 
 if __name__ == "__main__":

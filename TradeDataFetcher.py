@@ -2,6 +2,7 @@ import requests
 import argparse
 from utils import split_numbers_and_letters, get_time_unit, get_datetimes, save_to_json
 from constants import TIME_FRAMES
+import json
 
 
 def validate_input(args):
@@ -16,8 +17,9 @@ def validate_input(args):
         print("Number of candles must be a positive integer less than 1000")
 
 
-def fetch_bitcoin_history(tf, numCandles, currentPage):
-    url = f"https://api.finazon.io/latest/finazon/crypto/time_series?ticker=BTC/USDT&interval={tf}&page={currentPage}&page_size={numCandles}&apikey=27937194b05042048c1ddda8f2fd697dhk"
+def fetch_bitcoin_history(tf, numCandles, startAt, currentPage):
+    startAt = startAt - 3600
+    url = f"https://api.finazon.io/latest/finazon/crypto/time_series?ticker=BTC/USDT&interval={tf}&end_at={startAt}&page={currentPage}&page_size={numCandles}&apikey=27937194b05042048c1ddda8f2fd697dhk"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
@@ -41,6 +43,20 @@ def Main():
         help="Number of pages of data to collect",
     )
     parser.add_argument(
+        "startAt",
+        type=int,
+        nargs="?",
+        default=0,
+        help="Unix timestamp at which to start collecting data",
+    )
+    parser.add_argument(
+        "append",
+        type=bool,
+        nargs="?",
+        default=True,
+        help="Flag to append data to existing file, or create a new file.",
+    )
+    parser.add_argument(
         "filename",
         type=str,
         nargs="?",
@@ -53,10 +69,16 @@ def Main():
 
     currentPage = 1
     data = []
+    if args.append:
+        with open(args.filename, "r") as file:
+            data = json.load(file)  # Load JSON data as a Python list
+
     while currentPage <= args.numPages:
         if currentPage == 1:
             print("\nFetching Bitcoin historical price data...")
-        newData = fetch_bitcoin_history(args.tf, args.numCandles, currentPage)["data"]
+        newData = fetch_bitcoin_history(
+            args.tf, args.numCandles, args.startAt, currentPage
+        )["data"]
         get_datetimes(newData)
 
         data = data + newData

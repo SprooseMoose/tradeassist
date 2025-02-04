@@ -19,4 +19,4 @@ TIME_FRAMES = (
     "1w",
 )
 
-DAYS_OF_THE_WEEK = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+DAYS_OF_THE_WEEK = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")

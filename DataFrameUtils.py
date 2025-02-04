@@ -68,9 +68,7 @@ def GetAverageAndMedianWeeklyRange(df):
         .reset_index()
     )
     # Calculate the price difference between weekly high and low
-    weekly_ranges["range"] = (
-        weekly_ranges["weekly_high"] - weekly_ranges["weekly_low"]
-    )
+    weekly_ranges["range"] = weekly_ranges["weekly_high"] - weekly_ranges["weekly_low"]
     # Rename columns to lowercase
     weekly_ranges.columns = [
         "year",
@@ -156,6 +154,13 @@ def GetHighLowProbabilityByHour(df):
 
 
 def GetHighLowProbabilityByDay(df):
+    # Extract the week and year to group by week
+    df["week"] = df["datetime"].dt.to_period("W")
+    # Convert 'datetime' column to datetime type
+    df["datetime"] = pd.to_datetime(df["datetime"])
+    # Extract relevant features
+    df["hour"] = df["datetime"].dt.hour  # Extract hour
+    df["year"] = df["datetime"].dt.year  # Extract year
     # Find the weekly high and low and their corresponding days
     weekly_high_day = df.loc[df.groupby("week")["high"].idxmax()][
         ["week", "day", "high", "datetime"]
@@ -194,6 +199,131 @@ def GetHighLowProbabilityByDay(df):
         }
     # Convert the dictionary to a DataFrame for better readability
     return pd.DataFrame(day_probability).T
+
+
+def GetTopHighLowProbabilityByHourAndDay(df, top_n=8):
+    # Convert 'datetime' column to datetime type
+    df["datetime"] = pd.to_datetime(df["datetime"])
+
+    # Extract relevant time features
+    df["week"] = df["datetime"].dt.to_period("W")  # Weekly grouping
+    df["hour"] = df["datetime"].dt.hour  # Extract hour
+
+    # Find the weekly high and low and their corresponding days and hours
+    weekly_high_day = df.loc[df.groupby(["week"])["high"].idxmax()][
+        ["week", "day", "high", "datetime"]
+    ]
+    weekly_low_day = df.loc[df.groupby(["week"])["low"].idxmin()][
+        ["week", "day", "low", "datetime"]
+    ]
+
+    # Extract hour for high and low
+    weekly_high_day["hour"] = weekly_high_day["datetime"].dt.hour
+    weekly_low_day["hour"] = weekly_low_day["datetime"].dt.hour
+
+    # Merge high and low data
+    weekly_high_low = pd.concat(
+        [
+            weekly_high_day[["week", "day", "hour", "high"]],
+            weekly_low_day[["week", "day", "hour", "low"]],
+        ]
+    )
+
+    # Initialize dictionary to store probabilities
+    hourly_day_probability = []
+
+    # Loop through days and hours
+    for day in df["day"].unique():
+        for hour in range(24):
+            # Count occurrences of highs and lows for each day-hour combination
+            high_hour_count = weekly_high_low[
+                (weekly_high_low["day"] == day)
+                & (weekly_high_low["hour"] == hour)
+                & (weekly_high_low["high"].notnull())
+            ].shape[0]
+
+            low_hour_count = weekly_high_low[
+                (weekly_high_low["day"] == day)
+                & (weekly_high_low["hour"] == hour)
+                & (weekly_high_low["low"].notnull())
+            ].shape[0]
+
+            # Calculate probabilities
+            total_weeks = len(df["week"].unique())
+            high_prob = (high_hour_count / total_weeks) * 100
+            low_prob = (low_hour_count / total_weeks) * 100
+            total_prob = (high_prob + low_prob) / 2  # Averaged total probability
+
+            # Store in list
+            hourly_day_probability.append([day, hour, high_prob, low_prob, total_prob])
+
+    # Convert list to DataFrame
+    result_df = pd.DataFrame(
+        hourly_day_probability,
+        columns=[
+            "day",
+            "hour",
+            "high_probability",
+            "low_probability",
+            "total_probability",
+        ],
+    )
+
+    # Sort by day and then by total probability in descending order
+    result_df = result_df.sort_values(
+        by=["day", "total_probability"], ascending=[True, False]
+    )
+
+    # Keep only the **top N hours** for each day
+    result_df = result_df.groupby("day").head(top_n)
+
+    # Replace any 0% values with '-'
+    result_df[["high_probability", "low_probability", "total_probability"]] = result_df[
+        ["high_probability", "low_probability", "total_probability"]
+    ].map(lambda x: "-" if x == 0 else f"{x:.2f}%")
+
+    return result_df
+
+def CountWeeklyHighLowOccurrences(df):
+    # Convert 'datetime' column to datetime type
+    df["datetime"] = pd.to_datetime(df["datetime"])
+
+    # Extract week to group data
+    df["week"] = df["datetime"].dt.to_period("W")
+
+    # Find the weekly high and low and their corresponding days
+    weekly_high_day = df.loc[df.groupby("week")["high"].idxmax()][["week", "day"]]
+    weekly_low_day = df.loc[df.groupby("week")["low"].idxmin()][["week", "day"]]
+
+    # Count occurrences separately for highs and lows
+    high_counts = weekly_high_day["day"].value_counts().rename("high_occurrences")
+    low_counts = weekly_low_day["day"].value_counts().rename("low_occurrences")
+
+    # Combine both counts into a single table
+    day_counts = pd.DataFrame({"high_occurrences": high_counts, "low_occurrences": low_counts, "total_occurences": high_counts + low_counts}).fillna(0).astype(int)
+    
+    # Reset index and rename for clarity
+    day_counts = day_counts.reset_index().rename(columns={"index": "day"})
+
+    # Add a day-of-week sorting key (Monday=0, Sunday=6)
+    day_counts["day_order"] = day_counts["day"].apply(lambda x: DAYS_OF_THE_WEEK.index(x))
+
+    # Sort by actual day of the week
+    day_counts = day_counts.sort_values(by="day_order").drop(columns=["day_order"]).reset_index(drop=True)
+
+    return day_counts
+
+def PrintWeeklyHighLowOccurrences(df):
+        print(
+        "\nNumber of high or low occurring on each day:\n\n",
+        CountWeeklyHighLowOccurrences(df),
+    )
+
+def PrintTopHighLowProbabilityByHourAndDay(df):
+    print(
+        "\nChances of high or low occurring on a specific day and hour:\n\n",
+        GetTopHighLowProbabilityByHourAndDay(df),
+    )
 
 
 def PrintHighLowProbabilityByDay(df):
