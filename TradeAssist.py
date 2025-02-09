@@ -7,6 +7,7 @@ from DataFrameUtils import (
     PrintHighLowProbabilityByDay,
     PrintHighLowProbabilityByHour,
     PrintTopHighLowProbabilityByHourAndDay,
+    PrintGetHighestVolumeHours
 )
 from utils import RenameColumns
 
@@ -30,11 +31,13 @@ def Main():
         df["week"] = df["datetime"].dt.to_period("W")
         df["hour"] = df["datetime"].dt.hour
 
-        # PrintAverageAndMedianWeeklyRange(df)
         # PrintTopHighLowProbabilityByHourAndDay(df)
-        PrintHighLowProbabilityByDay(df)
+        # PrintAverageAndMedianWeeklyRange(df)
+        # PrintHighLowProbabilityByDay(df)
+        # PrintWeeklyHighLowOccurrences(df)
         PrintHighLowProbabilityByHour(df)
-        PrintWeeklyHighLowOccurrences(df)
+        # PrintGetHighestVolumeHours(df)
+        print("\n")
 
 
 if __name__ == "__main__":
